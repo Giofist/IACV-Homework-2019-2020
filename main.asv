@@ -5,14 +5,13 @@ debug = false; %if True display all the images (intermediate passages and choice
 auto_selection = false; %if true automatic line selection, if false manual line selection
 
 % global variables used in other functions
-global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL LINES_ORIZONTAL_CENTRE
+global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL
        
 % constants for line selection
 
 LINES_ORIZONTAL_LEFT = 1;
-LINES_ORIZONTAL_CENTRE = 2;
-LINES_ORIZONTAL_RIGHT = 3;
-LINES_VERTICAL = 4;
+LINES_ORIZONTAL_RIGHT = 2;
+LINES_VERTICAL = 3;
 
 % length of the longside of horizontal faces
 WINDOW_SIZE = 1000;   %1 meter
@@ -84,7 +83,7 @@ vp_v1 = getVp(lines_v1);
 draw_lines_infinity(lines(1,line_ind), im_rgb);
 
 % fit the line through these points
-l_inf_prime = fitLine([vp_o1 vp_o2 vp_v1],false);
+l_inf_prime = fitLine([vp_o1 vp_o2 vp_o3 vp_v1],false);
 
 %% compute H_r_aff
 
@@ -93,7 +92,7 @@ H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 % Transform the image and shows it
 img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification");
 
-%% Metric rectification (TODO here on not tested!!)
+%% Metric rectification
 % In order to perform metric rectification from an affine transformation we
 % need perpendicular lines for constraints of the C_star_inf'
 
@@ -104,7 +103,7 @@ perpLines = [createLinePairsFromTwoSets(lines_o1, lines_o2), createLinePairsFrom
 perpLines = transformLines(H_r_aff, perpLines);
 
 
-%% compute H through linear reg starting from affine transformation 
+%% compute H through linear reg starting from affine transformation (TODO Up to here)
 
 ls = [];
 ms = [];
