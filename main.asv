@@ -127,7 +127,7 @@ transform_and_show(H_a_e, img_affine, "Euclidean Reconstruction");
 % apply rotation of 180 degree along the x axis since the image is rotated
 % around the x axis.
 angle = 90;
-R = rotx(deg2rad(90));
+R = rotx(deg2rad(angle));
 
 % calculate the composite transformation
 % img -> affine -> euclidean -> rotation
@@ -135,4 +135,4 @@ R = rotx(deg2rad(90));
 % reconstruction.
 H_r = R * H_a_e * H_r_aff;
 
-out_e = transform_and_show(H_r, im_rgb, "Euclidean Reconstruction Plus Rotation");
+out_e = transform_and_show(H_r, im_rgb, "Euclidean Reconstruction");

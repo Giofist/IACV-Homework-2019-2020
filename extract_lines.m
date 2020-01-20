@@ -8,6 +8,9 @@ function lines = extract_lines(im_gray_norm, debug, method)
 %% Edge detection with canny
 if method == "canny"
     [BW2, th] = edge(im_gray_norm,'canny');
+    
+    %elimination of noise
+    BW2 = bwareaopen(BW2, 80);
     if debug
         figure;
         imshow(BW2)
