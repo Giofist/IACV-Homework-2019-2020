@@ -2,17 +2,17 @@
 clc
 clear all
 debug = false; %if True display all the images (intermediate passages and choices) else displays only most relevant images
-auto_selection = false; %if true automatic line selection, if false manual line selection
+auto_selection = true; %if true automatic line selection, if false manual line selection
 
 % global variables used in other functions
-global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL LINES_ORIZONTAL_CENTRE
+global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL_RIGHT
        
 % constants for line selection
 
 LINES_ORIZONTAL_LEFT = 1;
-LINES_ORIZONTAL_CENTRE = 2;
+LINES_VERTICAL_LEFT = 2;
 LINES_ORIZONTAL_RIGHT = 3;
-LINES_VERTICAL = 4;
+LINES_VERTICAL_RIGHT = 4;
 
 % length of the longside of horizontal faces
 WINDOW_SIZE = 1000;   %1 meter
@@ -63,28 +63,28 @@ draw_lines(lines, im_rgb);
 
 % Extract parallel lines
 
-[line_ind_o1, lines_o1] = pick_lines(lines,im_rgb,"Select two orizontal parallel lines on left facade:",auto_selection, LINES_ORIZONTAL_LEFT);
-[line_ind_o2, lines_o2] = pick_lines(lines,im_rgb,"Select two other orizontal parallel lines on main facade:", auto_selection, LINES_ORIZONTAL_CENTRE);
-[line_ind_o3, lines_o3] = pick_lines(lines,im_rgb,"Select two other orizontal parallel lines on right facade:", auto_selection, LINES_ORIZONTAL_RIGHT);
-[line_ind_v1, lines_v1] = pick_lines(lines,im_rgb,"Select two vertical parallel lines ortogonal to the previous ones:", auto_selection, LINES_VERTICAL);
+[line_ind_olw, lines_olw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on left window (then press enter):",auto_selection, LINES_ORIZONTAL_LEFT);
+[line_ind_vlw, lines_vlw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on left window (then press enter):", auto_selection, LINES_VERTICAL_LEFT);
+[line_ind_orw, lines_orw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on right window (then press enter):", auto_selection, LINES_ORIZONTAL_RIGHT);
+[line_ind_vrw, lines_vrw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
 
 % plot selected lines
-line_ind = [line_ind_o1, line_ind_o2, line_ind_o3 line_ind_v1];
+line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw];
 draw_lines(lines(1,line_ind), im_rgb);
 
 %% extract the line at infinite
 
 % get vanishing points
-vp_o1 = getVp(lines_o1);
-vp_o2 = getVp(lines_o2);
-vp_o3 = getVp(lines_o3);
-vp_v1 = getVp(lines_v1);
+vp_olw = getVp(lines_olw);
+vp_vlw = getVp(lines_vlw);
+vp_orw = getVp(lines_orw);
+vp_vrw = getVp(lines_vrw);
 
 %visualize vanishing lines and points
 draw_lines_infinity(lines(1,line_ind), im_rgb);
 
 % fit the line through these points
-l_inf_prime = fitLine([vp_o1 vp_o2 vp_v1],false);
+l_inf_prime = fitLine([vp_olw vp_vlw vp_orw vp_vrw],false);
 
 %% compute H_r_aff
 
@@ -93,10 +93,13 @@ H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 % Transform the image and shows it
 img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification");
 
-%% Metric rectification (TODO here on not tested!!)
+%{
+
+%% Metric rectification 
 % In order to perform metric rectification from an affine transformation we
 % need perpendicular lines for constraints of the C_star_inf'
 
+%%%(TODO error here)
 perpLines = [createLinePairsFromTwoSets(lines_o1, lines_o2), createLinePairsFromTwoSets(lines_v1, lines_o2)];
 
 % transform lines according to H_r_aff since we need to start from an
@@ -120,5 +123,29 @@ H_a_e = getH_from_affine(ls,ms);
 
 %% Transform from affinity
 
-transform_and_show(H_a_e, img_affine, "Euclidean Reconstruction");
+tform = projective2d(H_a_e.');
+img_affine_scaled = imresize(img_affine,[774 1032]);
+% apply the transformation to img  (TODO fix here)
+outputImage = imwarp(img_affine_scaled, tform);
 
+% show
+figure();
+imshow(outputImage);
+title("Euclidean Reconstruction");
+
+%transform_and_show(H_a_e, img_affine, "Euclidean Reconstruction");
+
+%% from original
+% apply rotation of 180 degree along the x axis since the image is rotated
+% around the x axis.
+angle = 180;
+R = rotx(deg2rad(180));
+
+% calculate the composite transformation
+% img -> affine -> euclidean -> rotation
+% H_r is the transformation from the original image to the euclidean
+% reconstruction.
+H_r = R * H_a_e * H_r_aff;
+
+out_e = transform_and_show(H_r, im_rgb, "Euclidean Reconstruction");
+%}

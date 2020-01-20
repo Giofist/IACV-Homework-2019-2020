@@ -10,11 +10,7 @@ function [line_ind, lines_out] = pick_lines(lines, img, text, auto_selection, li
 %x={\frac  {b(bx_{0}-ay_{0})-ac}{a^{2}+b^{2}}}{\text{ and }}y={\frac  {a(-bx_{0}+ay_{0})-bc}{a^{2}+b^{2}}}.
 
 % global variables used in other functions
-global LINES_LONG_LEFT LINES_LONG_RIGHT LINES_SHORT_LEFT ...
-       LINES_SHORT_RIGHT LINES_GROUND LINES_VERTICAL ...
-       LINES_LEFT_ORDERED LINES_RIGHT_TWO ...
-       LINES_VERTICAL_LEFT LINES_VERTICAL_RIGHT
-
+global LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL_RIGHT
    
 % get lines for selection
 % all the indices
@@ -25,26 +21,14 @@ L = getLineMatrix(lines, indices);
 if (auto_selection)
     %I have to put lines selected by hand
     switch line_group
-        case LINES_LONG_LEFT
-            line_indices = [14 1 2 18];
-        case LINES_LONG_RIGHT
-            line_indices = [39 4 24 13 65 72];
-        case LINES_SHORT_LEFT
-            line_indices = [15 31 55];
-        case LINES_SHORT_RIGHT
-            line_indices = [62 33 68 76 71];
-        case LINES_GROUND
-            line_indices = [10 16 19 75 50];
-        case LINES_VERTICAL
-            line_indices = [26 6 9 5 12 45 35 66 30 49];
-        case LINES_LEFT_ORDERED
-            line_indices = [1 55 15 18];
-        case LINES_RIGHT_TWO
-            line_indices = [72 76];
+        case LINES_ORIZONTAL_LEFT
+            line_indices = [137 10];
         case LINES_VERTICAL_LEFT
-            line_indices = [6 15 74 12];
+            line_indices = [93 51 50];
+        case LINES_ORIZONTAL_RIGHT
+            line_indices = [11 45 44 138];
         case LINES_VERTICAL_RIGHT
-            line_indices = [35 76 73 30];
+            line_indices = [139 140];
     end
 else
     draw_lines(lines, img);

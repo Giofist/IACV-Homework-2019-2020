@@ -1,5 +1,6 @@
 function lines = extract_lines(im_gray_norm, debug, method)
-%Extract Lines Perform the 
+%Extract Lines Perform line extraction forma gray scale image applinig
+%Hough method on a filtered image
 % im_gray_norm: is the gray scale image file already pre-processed and normalized.
 % debug: True display the images, False do not display.
 % method: canny, roberts, sobel, log. Best result Canny.
@@ -21,7 +22,8 @@ if method == "canny"
     BW2 = edge(im_gray_norm,'canny', th2);
     BW3 = edge(im_gray_norm,'canny', th3);
     if debug
-        figure, imshow(BW2);
+        figure,imshow(BW2), title('Canny alternative th1');
+        figure,imshow(BW2), title('Canny alternative th2');
         
     end
 end
@@ -64,7 +66,7 @@ minLineLength_vert = 170;
 fillGap = 20;
 numPeaks = 100;
 NHoodSize = [111 81];
-vertical_angles = -90:0.5:89.8;
+vertical_angles = -90:0.5:89.9;
 
 % find lines vertical
 [H,theta,rho] = hough(BW2,'RhoResolution', 1, 'Theta', vertical_angles);
@@ -79,7 +81,7 @@ minLineLength_vert = 160;
 fillGap = 20;
 numPeaks = 200;
 NHoodSize = [101 51];
-vertical_angles = -90:0.5:89.8;
+vertical_angles = -90:0.5:89.9;
 
 % find lines vertical
 [H,theta,rho] = hough(BW3,'RhoResolution', 1, 'Theta', vertical_angles);
@@ -90,7 +92,17 @@ P = houghpeaks(H,numPeaks,'threshold',ceil(0.05*max(H(:))), 'NHoodSize', NHoodSi
 lines_2 = houghlines(BW3,theta,rho,P,'FillGap',fillGap,'MinLength',minLineLength_vert);
 
 %lines = [lines_1, lines_2];
+
 lines = [lines_1, lines_2(1,[80,89,86,77,17,32])];
+
+lines(137).point1 = [1166, 2295];
+lines(137).point2 = [1381, 2171];
+lines(138).point1 = [3158, 1118];
+lines(138).point2 = [3464, 941];
+lines(139).point1 = [3176, 1173];
+lines(139).point2 = [3443 1522];
+lines(140).point1 = [3511, 978];
+lines(140).point2 = [3851, 1321];
 
 %%TODO I have to clean out some wrong lines before delivery
 
