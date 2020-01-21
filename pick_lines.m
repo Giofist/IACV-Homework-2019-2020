@@ -22,15 +22,15 @@ if (auto_selection)
     %I have to put lines selected by hand
     switch line_group
         case LINES_ORIZONTAL_LEFT
-            line_indices = [137 10];
+            line_indices = [137 10 37];
         case LINES_VERTICAL_LEFT
-            line_indices = [93 51]; %50
+            line_indices = [93 51 113 50]; %50
         case LINES_ORIZONTAL_RIGHT
-            line_indices = [11 138]; %45 44 
+            line_indices = [11 138 47 45 44]; %45 44 
         case LINES_VERTICAL_RIGHT
-            line_indices = [139 140];
+            line_indices = [139 140 15];
         case LINES_VERTICAL_EXTRA
-            line_indices = [122 79];
+            line_indices = [122 79 ];
         case LINES_ORIZONTAL_EXTRA
             line_indices = [112 96];
     end
