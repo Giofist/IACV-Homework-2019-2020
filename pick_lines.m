@@ -10,7 +10,7 @@ function [line_ind, lines_out] = pick_lines(lines, img, text, auto_selection, li
 %x={\frac  {b(bx_{0}-ay_{0})-ac}{a^{2}+b^{2}}}{\text{ and }}y={\frac  {a(-bx_{0}+ay_{0})-bc}{a^{2}+b^{2}}}.
 
 % global variables used in other functions
-global LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL_RIGHT
+global LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL_RIGHT LINES_VERTICAL_EXTRA LINES_ORIZONTAL_EXTRA
    
 % get lines for selection
 % all the indices
@@ -24,11 +24,15 @@ if (auto_selection)
         case LINES_ORIZONTAL_LEFT
             line_indices = [137 10];
         case LINES_VERTICAL_LEFT
-            line_indices = [93 51 50];
+            line_indices = [93 51]; %50
         case LINES_ORIZONTAL_RIGHT
-            line_indices = [11 45 44 138];
+            line_indices = [11 138]; %45 44 
         case LINES_VERTICAL_RIGHT
             line_indices = [139 140];
+        case LINES_VERTICAL_EXTRA
+            line_indices = [122 79];
+        case LINES_ORIZONTAL_EXTRA
+            line_indices = [112 96];
     end
 else
     draw_lines(lines, img);

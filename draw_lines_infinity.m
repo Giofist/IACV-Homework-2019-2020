@@ -1,6 +1,7 @@
-function draw_lines_infinity(lines,img)
+function draw_lines_infinity(lines,img, vp)
 %PLOT_LINES Plot lines at infinity over the image
 %   lines is a vector of structs made of point1, point2
+%   vp: vanishing point computed
 
 [rows, columns] = size(img);
 xy_1 = zeros([2,2]);
@@ -29,12 +30,16 @@ figure, imshow(img),title('Vanishing Lines and points'), hold on
        b2 = intercept(xy,m2);
        xintersect = (b2-b1)/(m1-m2);
        yintersect = m1*xintersect + b1;
-       plot(xintersect,yintersect,'m*','markersize',8, 'Color', 'red')
+       plot(xintersect,yintersect,'m*','markersize',8,'LineWidth',3, 'Color', 'black')
        xy_1 = xy;
+       
 
        % Plot original points on the lines .
        plot(xy(1,1),xy(1,2),'x','markersize',8,'Color','yellow'); 
        plot(xy(2,1),xy(2,2),'x','markersize',8,'Color','green');
+    end
+    for n = 1:length(vp)
+       plot(vp(1,n),vp(2, n) ,'m*','markersize',10, 'Color', 'red');
     end
 end
 

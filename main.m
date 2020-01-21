@@ -3,9 +3,10 @@ clc
 clear all
 debug = false; %if True display all the images (intermediate passages and choices) else displays only most relevant images
 auto_selection = true; %if true automatic line selection, if false manual line selection
+ceck_with_second_image = false;  %if true it passes the second image to the algorithm
 
 % global variables used in other functions
-global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL_RIGHT
+global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL_RIGHT LINES_VERTICAL_EXTRA LINES_ORIZONTAL_EXTRA
        
 % constants for line selection
 
@@ -13,12 +14,22 @@ LINES_ORIZONTAL_LEFT = 1;
 LINES_VERTICAL_LEFT = 2;
 LINES_ORIZONTAL_RIGHT = 3;
 LINES_VERTICAL_RIGHT = 4;
+LINES_VERTICAL_EXTRA = 5;
+LINES_ORIZONTAL_EXTRA = 6;
 
 % length of the longside of horizontal faces
 WINDOW_SIZE = 1000;   %1 meter
 
 %% Open the Image
-im_rgb = imread('Image1.jpg');
+
+if ceck_with_second_image
+    image_input = 'Image2.jpg';
+    auto_selection = false; 
+else
+    image_input = 'Image1.jpg';
+end 
+
+im_rgb = imread(image_input);
 IMG_MAX_SIZE = max(size(im_rgb));
 
 if debug
@@ -49,7 +60,7 @@ if debug
 end
 
 %% Line extraction
-lines = extract_lines(im_gray_norm, debug, "canny");
+lines = extract_lines(im_gray_norm, debug, "canny", ceck_with_second_image);
 
 % plot lines on the image
 draw_lines(lines, im_rgb);
@@ -67,7 +78,8 @@ draw_lines(lines, im_rgb);
 [line_ind_vlw, lines_vlw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on left window (then press enter):", auto_selection, LINES_VERTICAL_LEFT);
 [line_ind_orw, lines_orw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on right window (then press enter):", auto_selection, LINES_ORIZONTAL_RIGHT);
 [line_ind_vrw, lines_vrw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
-
+%[line_ind_vextra, lines_vextra] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines (then press enter):", auto_selection, LINES_VERTICAL_EXTRA);
+%[line_ind_oextra, lines_oextra] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines (then press enter):", auto_selection, LINES_ORIZONTAL_EXTRA);
 % plot selected lines
 line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw];
 draw_lines(lines(1,line_ind), im_rgb);
@@ -79,20 +91,25 @@ vp_olw = getVp(lines_olw);
 vp_vlw = getVp(lines_vlw);
 vp_orw = getVp(lines_orw);
 vp_vrw = getVp(lines_vrw);
+%vp_vextra = getVp(lines_vextra);
+%vp_oextra = getVp(lines_oextra);
+
+%vp = [vp_olw vp_vlw vp_orw vp_vrw vp_vextra vp_oextra];
+vp = [vp_olw vp_vlw vp_orw vp_vrw];
 
 %visualize vanishing lines and points
-draw_lines_infinity(lines(1,line_ind), im_rgb);
-
+draw_lines_infinity(lines(1,line_ind), im_rgb, vp);
+    
+    
 % fit the line through these points
 %l_inf_prime = fitLine([vp_olw vp_vlw vp_orw vp_vrw],false);
-l_inf_prime = fitLine([vp_vlw vp_vrw],false);
+l_inf_prime = fitLine([vp_vrw vp_vlw],false);
 %% compute H_r_aff
 
 H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 
 % Transform the image and shows it
 img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification");
-
 
 %% Metric rectification
 % In order to perform metric rectification from an affine transformation we
@@ -126,8 +143,8 @@ transform_and_show(H_a_e, img_affine, "Euclidean Reconstruction");
 %% from original
 % apply rotation of 180 degree along the x axis since the image is rotated
 % around the x axis.
-angle = 90;
-R = rotx(deg2rad(90));
+angle = 180;
+R = rotx(deg2rad(180));
 
 % calculate the composite transformation
 % img -> affine -> euclidean -> rotation

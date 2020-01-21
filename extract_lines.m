@@ -1,9 +1,11 @@
-function lines = extract_lines(im_gray_norm, debug, method)
+function lines = extract_lines(im_gray_norm, debug, method, ceck_with_second_image)
 %Extract Lines Perform line extraction forma gray scale image applinig
 %Hough method on a filtered image
 % im_gray_norm: is the gray scale image file already pre-processed and normalized.
 % debug: True display the images, False do not display.
 % method: canny, roberts, sobel, log. Best result Canny.
+% ceck_with_second_image: true if we are using the second image to double
+% ceck
 
 %% Edge detection with canny
 if method == "canny"
@@ -96,16 +98,21 @@ lines_2 = houghlines(BW3,theta,rho,P,'FillGap',fillGap,'MinLength',minLineLength
 
 %lines = [lines_1, lines_2];
 
-lines = [lines_1, lines_2(1,[80,89,86,77,17,32])];
 
-lines(137).point1 = [1166, 2295];
-lines(137).point2 = [1381, 2171];
-lines(138).point1 = [3158, 1118];
-lines(138).point2 = [3464, 941];
-lines(139).point1 = [3176, 1173];
-lines(139).point2 = [3443 1522];
-lines(140).point1 = [3511, 978];
-lines(140).point2 = [3851, 1321];
+if ceck_with_second_image == false
+    lines = [lines_1, lines_2(1,[80,89,86,77,17,32])];
+    lines(137).point1 = [1166, 2295];
+    lines(137).point2 = [1381, 2171];
+    lines(138).point1 = [3158, 1118];
+    lines(138).point2 = [3464, 941];
+    lines(139).point1 = [3176, 1173];
+    lines(139).point2 = [3443 1522];
+    lines(140).point1 = [3511, 978];
+    lines(140).point2 = [3851, 1321];
+else
+    lines = [lines_1, lines_2];
+end
+
 
 %%TODO I have to clean out some wrong lines before delivery
 

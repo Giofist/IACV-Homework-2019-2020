@@ -67,6 +67,7 @@ draw_lines(lines, im_rgb);
 [line_ind_vlw, lines_vlw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on left window (then press enter):", auto_selection, LINES_VERTICAL_LEFT);
 [line_ind_orw, lines_orw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on right window (then press enter):", auto_selection, LINES_ORIZONTAL_RIGHT);
 [line_ind_vrw, lines_vrw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
+[line_ind_extra, lines_extra] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
 
 % plot selected lines
 line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw];
@@ -85,14 +86,13 @@ draw_lines_infinity(lines(1,line_ind), im_rgb);
 
 % fit the line through these points
 %l_inf_prime = fitLine([vp_olw vp_vlw vp_orw vp_vrw],false);
-l_inf_prime = fitLine([vp_vlw vp_vrw],false);
+l_inf_prime = fitLine([vp_vrw vp_vlw],false);
 %% compute H_r_aff
 
 H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 
 % Transform the image and shows it
 img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification");
-
 
 %% Metric rectification
 % In order to perform metric rectification from an affine transformation we
@@ -127,7 +127,7 @@ transform_and_show(H_a_e, img_affine, "Euclidean Reconstruction");
 % apply rotation of 180 degree along the x axis since the image is rotated
 % around the x axis.
 angle = 90;
-R = rotx(deg2rad(angle));
+R = rotx(deg2rad(90));
 
 % calculate the composite transformation
 % img -> affine -> euclidean -> rotation
@@ -135,4 +135,4 @@ R = rotx(deg2rad(angle));
 % reconstruction.
 H_r = R * H_a_e * H_r_aff;
 
-out_e = transform_and_show(H_r, im_rgb, "Euclidean Reconstruction");
+out_e = transform_and_show(H_r, im_rgb, "Euclidean Reconstruction Plus Rotation");
