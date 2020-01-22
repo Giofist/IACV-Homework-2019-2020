@@ -79,9 +79,9 @@ draw_lines(lines, im_rgb);
 [line_ind_orw, lines_orw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on right window (then press enter):", auto_selection, LINES_ORIZONTAL_RIGHT);
 [line_ind_vrw, lines_vrw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
 %[line_ind_vextra, lines_vextra] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines (then press enter):", auto_selection, LINES_VERTICAL_EXTRA);
-%[line_ind_oextra, lines_oextra] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines (then press enter):", auto_selection, LINES_ORIZONTAL_EXTRA);
+[line_ind_oextra, lines_oextra] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines (then press enter):", auto_selection, LINES_ORIZONTAL_EXTRA);
 % plot selected lines
-line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw];
+line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw, line_ind_oextra];
 draw_lines(lines(1,line_ind), im_rgb);
 
 %% extract the line at infinite
@@ -92,10 +92,10 @@ vp_vlw = getVp(lines_vlw);
 vp_orw = getVp(lines_orw);
 vp_vrw = getVp(lines_vrw);
 %vp_vextra = getVp(lines_vextra);
-%vp_oextra = getVp(lines_oextra);
+vp_oextra = getVp(lines_oextra);
 
 %vp = [vp_olw vp_vlw vp_orw vp_vrw vp_vextra vp_oextra];
-vp = [vp_olw vp_vlw vp_orw vp_vrw];
+vp = [vp_olw vp_vlw vp_orw vp_vrw, vp_oextra];
 
 %visualize vanishing lines and points
 draw_lines_infinity(lines(1,line_ind), im_rgb, vp);
@@ -103,53 +103,27 @@ draw_lines_infinity(lines(1,line_ind), im_rgb, vp);
     
 % fit the line through these points
 %l_inf_prime = fitLine([vp_olw vp_vlw vp_orw vp_vrw],false);
-l_inf_prime = fitLine([vp_vrw vp_vlw],false);
+l_inf_prime = fitLine([vp_orw vp_oextra],true);
+
 %% compute H_r_aff
 
 H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 
-% Transform the image and shows it
+% Transform the image
 img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification");
 
+%l_inf_transformed = tformfwd();
+
+
+
+%% Estimate K from normalized vp
+A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
+    vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
+    vp_oextra(1)*vp_vlw(1)+vp_oextra(2)*vp_vlw(2),vp_oextra(1)+vp_vlw(1),vp_oextra(2)+vp_vlw(2),1];
+aus = null(A);
+IAC = [aus(1), 0, aus(2); 0, aus(1), aus(3); aus(2),aus(3),aus(4)];
+K = chol(IAC);
+K = inv(K);
+K = K/K(3,3);
+
 %% Metric rectification
-% In order to perform metric rectification from an affine transformation we
-% need perpendicular lines for constraints of the C_star_inf'
-
-perpLines = [createLinePairsFromTwoSets(lines_olw, lines_vlw), createLinePairsFromTwoSets(lines_orw, lines_vrw)];
-
-% transform lines according to H_r_aff since we need to start from an
-% affinity
-perpLines = transformLines(H_r_aff, perpLines);
-
-
-%% compute H through linear reg starting from affine transformation
-
-ls = [];
-ms = [];
-index = 1;
-for ii = 1:2:size(perpLines,2)
-    ls(:, index) = perpLines(:, ii);
-    ms(:, index) = perpLines(:, ii+1);
-    index = index + 1;
-end
-
-% fit the transformation from affinity to euclidean
-H_a_e = getH_from_affine(ls,ms);
-
-%% Transform from affinity
-
-transform_and_show(H_a_e, img_affine, "Euclidean Reconstruction");
-
-%% from original
-% apply rotation of 180 degree along the x axis since the image is rotated
-% around the x axis.
-angle = 180;
-R = rotx(deg2rad(180));
-
-% calculate the composite transformation
-% img -> affine -> euclidean -> rotation
-% H_r is the transformation from the original image to the euclidean
-% reconstruction.
-H_r = R * H_a_e * H_r_aff;
-
-out_e = transform_and_show(H_r, im_rgb, "Euclidean Reconstruction Plus Rotation");

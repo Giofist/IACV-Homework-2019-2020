@@ -32,7 +32,7 @@ if (auto_selection)
         case LINES_VERTICAL_EXTRA
             line_indices = [122 79 ];
         case LINES_ORIZONTAL_EXTRA
-            line_indices = [112 96];
+            line_indices = [133 59];
     end
 else
     draw_lines(lines, img);
