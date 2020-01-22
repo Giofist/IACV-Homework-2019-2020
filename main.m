@@ -103,7 +103,7 @@ draw_lines_infinity(lines(1,line_ind), im_rgb, vp);
     
 % fit the line through these points
 %l_inf_prime = fitLine([vp_olw vp_vlw vp_orw vp_vrw],false);
-l_inf_prime = fitLine([vp_orw vp_oextra],true);
+l_inf_prime = fitLine([vp_olw vp_oextra],true);
 
 %% compute H_r_aff
 
@@ -111,9 +111,6 @@ H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 
 % Transform the image
 img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification");
-
-%l_inf_transformed = tformfwd();
-
 
 
 %% Estimate K from normalized vp

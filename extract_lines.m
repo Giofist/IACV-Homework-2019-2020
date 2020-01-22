@@ -65,38 +65,19 @@ if method == "log"
 end
 
 %% Line Detection
-% Hough parameters
-% Use two sets of parameters for line extraction
-minLineLength_vert = 170;
-fillGap = 20;
-numPeaks = 100;
-NHoodSize = [111 81];
-vertical_angles = -90:0.5:89.9;
+% find lines vertical
+[H,theta,rho] = hough(BW2,'RhoResolution', 1, 'Theta', -90:0.5:89.9);
+% find peaks in hough transform
+P = houghpeaks(H,100,'threshold',ceil(0.05*max(H(:))), 'NHoodSize', [111 81]);
+% find lines using houghlines
+lines_1 = houghlines(BW2,theta,rho,P,'FillGap',20,'MinLength',170);
 
 % find lines vertical
-[H,theta,rho] = hough(BW2,'RhoResolution', 1, 'Theta', vertical_angles);
+[H,theta,rho] = hough(BW3,'RhoResolution', 1, 'Theta', -90:0.5:89.9);
 % find peaks in hough transform
-P = houghpeaks(H,numPeaks,'threshold',ceil(0.05*max(H(:))), 'NHoodSize', NHoodSize);
-
+P = houghpeaks(H,200,'threshold',ceil(0.05*max(H(:))), 'NHoodSize', [101 51]);
 % find lines using houghlines
-lines_1 = houghlines(BW2,theta,rho,P,'FillGap',fillGap,'MinLength',minLineLength_vert);
-
-% Other params
-minLineLength_vert = 160;
-fillGap = 20;
-numPeaks = 200;
-NHoodSize = [101 51];
-vertical_angles = -90:0.5:89.9;
-
-% find lines vertical
-[H,theta,rho] = hough(BW3,'RhoResolution', 1, 'Theta', vertical_angles);
-% find peaks in hough transform
-P = houghpeaks(H,numPeaks,'threshold',ceil(0.05*max(H(:))), 'NHoodSize', NHoodSize);
-
-% find lines using houghlines
-lines_2 = houghlines(BW3,theta,rho,P,'FillGap',fillGap,'MinLength',minLineLength_vert);
-
-%lines = [lines_1, lines_2];
+lines_2 = houghlines(BW3,theta,rho,P,'FillGap',20,'MinLength',160);
 
 
 if ceck_with_second_image == false
