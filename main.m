@@ -78,7 +78,7 @@ draw_lines(lines, im_rgb);
 [line_ind_vlw, lines_vlw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on left window (then press enter):", auto_selection, LINES_VERTICAL_LEFT);
 [line_ind_orw, lines_orw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on right window (then press enter):", auto_selection, LINES_ORIZONTAL_RIGHT);
 [line_ind_vrw, lines_vrw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
-%[line_ind_vextra, lines_vextra] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines (then press enter):", auto_selection, LINES_VERTICAL_EXTRA);
+[line_ind_vextra, lines_vextra] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines (then press enter):", auto_selection, LINES_VERTICAL_EXTRA);
 [line_ind_oextra, lines_oextra] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines (then press enter):", auto_selection, LINES_ORIZONTAL_EXTRA);
 % plot selected lines
 line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw, line_ind_oextra];
@@ -110,7 +110,7 @@ l_inf_prime = fitLine([vp_olw vp_oextra],true);
 H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 
 % Transform the image
-img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification");
+img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification XZ");
 
 
 %% Estimate K from normalized vp
@@ -123,4 +123,42 @@ K = chol(IAC);
 K = inv(K);
 K = K/K(3,3);
 
+
 %% Metric rectification
+% In order to perform metric rectification from an affine transformation we
+% need perpendicular lines for constraints of the C_star_inf'
+
+perpLines = [createLinePairsFromTwoSets(lines_olw, lines_oextra)];
+
+% transform lines according to H_r_aff since we need to start from an affinity
+perpLines = transformLines(H_r_aff, perpLines);
+
+% Ceck if transformed lines are good (TODO)
+
+%% compute H through linear reg starting from affine transformation
+
+ls = [];
+ms = [];
+index = 1;
+for ii = 1:2:size(perpLines,2)
+    ls(:, index) = perpLines(:, ii);
+    ms(:, index) = perpLines(:, ii+1);
+    index = index + 1;
+end
+
+% fit the transformation from affinity to euclidean
+H_a_e = getH_from_affine(ls,ms);
+
+%% Transform from affinity
+img_affine_scaled = imresize(img_affine, 0.2);
+tform = projective2d(H_a_e.');
+
+% apply the transformation to img
+outputImage = imwarp(img_affine_scaled, tform);
+outputImage = imresize(outputImage, [3096, 4128]);
+% show
+figure();
+imshow(outputImage);
+title('Affine transformation');
+
+%%
