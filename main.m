@@ -155,10 +155,15 @@ tform = projective2d(H_a_e.');
 
 % apply the transformation to img
 outputImage = imwarp(img_affine_scaled, tform);
-outputImage = imresize(outputImage, [3096, 4128]);
+angle = 180;
+R = rotx(deg2rad(180));
+tform = projective2d(R.');
+outputImage = imwarp(outputImage, tform);
+outputImage = imrotate(imresize(outputImage, [3096, 4128]), -83);
 % show
 figure();
 imshow(outputImage);
 title('Affine transformation');
 
-%%
+H_r = R * H_a_e * H_r_aff;
+

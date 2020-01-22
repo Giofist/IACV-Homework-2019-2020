@@ -150,6 +150,29 @@ end
 H_a_e = getH_from_affine(ls,ms);
 
 %% Transform from affinity
-img_affine = imresize(im, 0.5);
-transform_and_show(H_a_e, img_affine, "Euclidean Reconstruction");
+img_affine_scaled = imresize(img_affine, 0.2);
+tform = projective2d(H_a_e.');
 
+% apply the transformation to img
+outputImage = imwarp(img_affine_scaled, tform);
+angle = 180;
+R = rotx(deg2rad(180));
+tform = projective2d(R.');
+outputImage = imwarp(outputImage, tform);
+outputImage = imrotate(imresize(outputImage, [3096, 4128]), -83
+);
+% show
+figure();
+imshow(outputImage);
+title('Affine transformation');
+%{
+%% Rotate 90 deg
+angle = 90;
+R = rotx(deg2rad(90));
+
+% calculate the composite transformation
+% img -> affine -> euclidean -> rotation
+% H_r is the transformation from the original image to the euclidean
+% reconstruction.
+H_r = R * H_a_e * H_r_aff;
+%}
