@@ -1,4 +1,4 @@
-function H = getH_from_affine(ls,ms)
+function H = compute_H_aff(ls,ms, debug)
 %GETH_FROM_AFFINE Computes H through least square approximation starting from an
 %   affinity
 % H is the reconstruction matrix that brings the affinity to an euclidean
@@ -46,4 +46,9 @@ C_star_prime = [W(1,1) W(2,1) 0; W(2,1) 1 0; 0 0 0];
 H = (U * diag([sqrt(S(1, 1)), sqrt(S(2, 2)), 1]));
 H = inv(H);
 
+if debug
+    disp(S);
+    disp(U);
+    disp(V);
+end 
 

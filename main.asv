@@ -6,7 +6,9 @@ auto_selection = true; %if true automatic line selection, if false manual line s
 ceck_with_second_image = false;  %if true it passes the second image to the algorithm
 
 % global variables used in other functions
-global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT LINES_VERTICAL_RIGHT LINES_VERTICAL_EXTRA LINES_ORIZONTAL_EXTRA
+global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGHT ...
+        LINES_VERTICAL_RIGHT LINES_VERTICAL_EXTRA LINES_ORIZONTAL_EXTRA TOP_LINE_LW TOP_LINE_RW ...
+        IMG_MAX_SIZE_X IMG_MAX_SIZE_Y IMG_MAX_SIZE
        
 % constants for line selection
 
@@ -16,7 +18,11 @@ LINES_ORIZONTAL_RIGHT = 3;
 LINES_VERTICAL_RIGHT = 4;
 LINES_VERTICAL_EXTRA = 5;
 LINES_ORIZONTAL_EXTRA = 6;
-
+TOP_LINE_LW = 7;
+TOP_LINE_RW = 8;
+IMG_MAX_SIZE_X;
+IMG_MAX_SIZE_Y;
+IMG_MAX_SIZE;
 % length of the longside of horizontal faces
 WINDOW_SIZE = 1000;   %1 meter
 
@@ -31,6 +37,9 @@ end
 
 im_rgb = imread(image_input);
 IMG_MAX_SIZE = max(size(im_rgb));
+[x, y] =size(im_rgb);
+IMG_MAX_SIZE_X = x;
+IMG_MAX_SIZE_Y = y/3; %fro RGB
 
 if debug
     figure(1), imshow(im_rgb); title('Original Image');
@@ -113,22 +122,11 @@ H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification XZ");
 
 
-%% Estimate K from normalized vp
-A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
-    vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
-    vp_oextra(1)*vp_vlw(1)+vp_oextra(2)*vp_vlw(2),vp_oextra(1)+vp_vlw(1),vp_oextra(2)+vp_vlw(2),1];
-aus = null(A);
-IAC = [aus(1), 0, aus(2); 0, aus(1), aus(3); aus(2),aus(3),aus(4)];
-K = chol(IAC);
-K = inv(K);
-K = K/K(3,3);
-
-
 %% Metric rectification
 % In order to perform metric rectification from an affine transformation we
 % need perpendicular lines for constraints of the C_star_inf'
 
-perpLines = [createLinePairsFromTwoSets(lines_olw, lines_oextra)];
+perpLines = [createLinePairsFromTwoSets(lines_olw, lines_oextra), createLinePairsFromTwoSets(lines_olw, lines_vextra)];
 
 % transform lines according to H_r_aff since we need to start from an affinity
 perpLines = transformLines(H_r_aff, perpLines);
@@ -147,7 +145,7 @@ for ii = 1:2:size(perpLines,2)
 end
 
 % fit the transformation from affinity to euclidean
-H_a_e = getH_from_affine(ls,ms);
+H_a_e = compute_H_aff(ls,ms, debug);
 
 %% Transform from affinity
 img_affine_scaled = imresize(img_affine, 0.2);
@@ -155,24 +153,56 @@ tform = projective2d(H_a_e.');
 
 % apply the transformation to img
 outputImage = imwarp(img_affine_scaled, tform);
-angle = 180;
 R = rotx(deg2rad(180));
 tform = projective2d(R.');
 outputImage = imwarp(outputImage, tform);
-outputImage = imrotate(imresize(outputImage, [3096, 4128]), -83
-);
-% show
+outputImage = imrotate(imresize(outputImage, [IMG_MAX_SIZE_X, IMG_MAX_SIZE_Y]), -88);
+
 figure();
 imshow(outputImage);
 title('Affine transformation');
-%{
-%% Rotate 90 deg
-angle = 90;
-R = rotx(deg2rad(90));
 
-% calculate the composite transformation
-% img -> affine -> euclidean -> rotation
-% H_r is the transformation from the original image to the euclidean
-% reconstruction.
-H_r = R * H_a_e * H_r_aff;
-%}
+%% Complete Transformation
+
+Resize = [0.2 0 0; 0 0.2 0; 0 0 1];
+%O = rotz(deg2rad(50));
+%H_r_complete = Resize * R * H_a_e * H_r_aff * O;
+H_r_complete = Resize * R * H_a_e * H_r_aff;
+ 
+tform_complete = projective2d(H_r_complete.');
+outputImage_final = imwarp(im_rgb, tform_complete);
+%outputImage_final = imresize(outputImage_final, [IMG_MAX_SIZE_X, IMG_MAX_SIZE_Y]);
+
+figure();
+imshow(imrotate(outputImage_final, -88));
+title('Affine transformation');
+
+%% metric
+H_metric = [1 0 0; 0 107/140 0; 0 0 1];
+tform_metric = projective2d(H_metric.');
+outputImage_metric = imwarp(outputImage_final, tform_metric);
+
+figure();
+imshow(outputImage_metric);
+title('Metric reconstruction');
+
+
+%% Estimate K from normalized vp
+% for double ceck but assuming also natural camera!!!
+A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
+    vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
+    vp_oextra(1)*vp_vlw(1)+vp_oextra(2)*vp_vlw(2),vp_oextra(1)+vp_vlw(1),vp_oextra(2)+vp_vlw(2),1];
+aus = null(A);
+IAC = [aus(1), 0, aus(2); 0, aus(1), aus(3); aus(2),aus(3),aus(4)];
+K = chol(IAC);
+K = inv(K);
+K = K/K(3,3);
+
+%%
+tform_k = projective2d(K.');
+outputImage_k = imwarp(im_rgb, tform_k*Resize);
+outputImage_k = imresize(outputImage_k, [IMG_MAX_SIZE_X, IMG_MAX_SIZE_Y]);
+
+figure();
+imshow(outputImage_k);
+title('Affine transformation using K');
