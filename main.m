@@ -165,45 +165,64 @@ title('Affine transformation');
 %% Complete Transformation
 
 Resize = [0.2 0 0; 0 0.2 0; 0 0 1];
-%O = rotz(deg2rad(50));
-%H_r_complete = Resize * R * H_a_e * H_r_aff * O;
-H_r_complete = Resize * R * H_a_e * H_r_aff;
+O = rotz(deg2rad(-88));
+H_r_complete = Resize * R * O * H_a_e * H_r_aff;
  
 tform_complete = projective2d(H_r_complete.');
 outputImage_final = imwarp(im_rgb, tform_complete);
 %outputImage_final = imresize(outputImage_final, [IMG_MAX_SIZE_X, IMG_MAX_SIZE_Y]);
 
 figure();
-imshow(imrotate(outputImage_final, -88));
+imshow(outputImage_final);
 title('Affine transformation');
 
 %% metric
-H_metric = [1 0 0; 0 108/164 0; 0 0 1];
+H_metric = [1 0 0; 0 164/109 0; 0 0 1];
 tform_metric = projective2d(H_metric.');
 outputImage_metric = imwarp(outputImage_final, tform_metric);
 
 figure();
-imshow(imrotate(outputImage_metric, -88));
+imshow(outputImage_metric);
 title('Metric reconstruction');
+
+H_fin = H_metric * H_r_complete;
 
 %% Estimate calibtation matrix K
 % We can use skew simmetry but not natural camera assumption!!!
+% the matrix we're looking for is:
+%               |w1  0   w3|
+%           w=  |0   w2  w4|
+%               |w3  w4  w5|
+%We need 5 constraint 3 form vanishing points and 2 form H matrix
 
+%calculation of K from IAC using constraints (p226)
+A = [vp_olw(1)*vp_vlw(1), vp_olw(2)*vp_vlw(2),   vp_olw(1)+vp_vlw(1),  vp_olw(2)+vp_vlw(2),  1;
+    vp_olw(1)*vp_oextra(1),   vp_olw(2)*vp_oextra(2),  vp_olw(1)+vp_oextra(1),   vp_olw(2)+vp_oextra(2),   1;
+    vp_oextra(1)*vp_vlw(1),   vp_oextra(2)*vp_vlw(2),  vp_oextra(1)+vp_vlw(1),   vp_oextra(2)+vp_vlw(2),   1;
+    H_fin(1,1)*H_fin(2,1),  H_fin(1,2)*H_fin(2,2),  H_fin(1,3)*H_fin(2,1)+H_fin(1,1)*H_fin(2,3), H_fin(1,3)*H_fin(2,2)+H_fin(1,2)*H_fin(2,3), H_fin(1,3)*H_fin(2,3)];
+aus = null(A);
+IAC = [aus(1), 0, aus(3); 0, aus(2), aus(4); aus(3),aus(4),aus(5)];
+K_g = chol(IAC);
+K_g = inv(K_g);
+K_g = K_g/K_g(3,3);
 
+% %% Estimate calibtation matrix K second attempt not working!!!
+% % We can use skew simmetry but not natural camera assumption!!!
+% % the matrix we're looking for is:
+% 
+% %calculation of K from IAC using constraints (p226)zz
+% A = [vp_olw(1)*vp_vlw(1), vp_olw(2)*vp_vlw(2),   vp_olw(1)+vp_vlw(1),  vp_olw(2)+vp_vlw(2),  1;
+%     vp_olw(1)*vp_oextra(1),   vp_olw(2)*vp_oextra(2),  vp_olw(1)+vp_oextra(1),   vp_olw(2)+vp_oextra(2),   1;
+%     vp_oextra(1)*vp_vlw(1),   vp_oextra(2)*vp_vlw(2),  vp_oextra(1)+vp_vlw(1),   vp_oextra(2)+vp_vlw(2),   1;
+%     H_fin(1,1)*H_fin(2,1), H_fin(1,2)*H_fin(2,2),  H_fin(1,3)*H_fin(2,1)+H_fin(1,1)*H_fin(2,3), H_fin(1,3)*H_fin(2,2)+H_fin(1,2)*H_fin(2,3), H_fin(1,3)*H_fin(2,3);
+%     H_fin(1,1)^2-H_fin(2,1)^2, H_fin(1,2)^2-H_fin(2,2)^2,   2*(H_fin(1,3)*H_fin(1,1)-H_fin(2,3)*H_fin(2,1)),    2*(H_fin(1,3)*H_fin(1,2)-H_fin(2,3)*H_fin(2,2)),   H_fin(1,3)^2-H_fin(2,3)^2];
+% aus = null(A);
+% IAC = [aus(1), 0, aus(3); 0, aus(2), aus(4); aus(3),aus(4),aus(5)];
+% K_g2 = chol(IAC);
+% K_g2 = inv(K_g2);
+% K_g2 = K_g2/K_g2(3,3);
 
-
-
-
-
-
-
-
-
-
-
-
-
-%% Estimate K from normalized vp
+%% Estimate K from normalized vp Second test
 % for double ceck but assuming also natural camera!!!
 A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
     vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
@@ -214,11 +233,10 @@ K = chol(IAC);
 K = inv(K);
 K = K/K(3,3);
 
-%{
-tform_k = projective2d(K.');
+%% Reconstruction of main facade  (TO BE FIXED
+tform_k = projective2d(K_g.');
 outputImage_k = imwarp(im_rgb, tform_k);
 
 figure();
 imshow(outputImage_k);
 title('Affine transformation using K');
-%}
