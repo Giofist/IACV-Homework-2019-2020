@@ -233,7 +233,8 @@ K = chol(IAC);
 K = inv(K);
 K = K/K(3,3);
 
-%% Reconstruction of main facade  (TO BE FIXED
+%% Reconstruction of main facade  (TO BE FIXED)
+K_g = [0.01 0 0; 0 0.01 0; 0 0 1] * K_g;
 tform_k = projective2d(K_g.');
 outputImage_k = imwarp(im_rgb, tform_k);
 
