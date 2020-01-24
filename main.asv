@@ -277,13 +277,12 @@ b1 = b-a+[K(1,3), K(2,3)];
 c1 = c-a+[K(1,3), K(2,3)];
 d1 = d-a+[K(1,3), K(2,3)];
 a1 = [K(1,3), K(2,3)];
-
 %scalo rispetto a fx e fy
 ratio_c = norm(a1-c1)/K(2,2);
 c_new = [a1(1)+(c1(1)-a1(1))*ratio_c, a1(2)+(c1(2)-a1(2))*ratio_c,1]';
 ratio_b = norm(a1-b1)/K(1,1);
 b_new = [a1(1)+(b1(1)-a1(1))*ratio_b, a1(2)+(b1(2)-a1(2))*ratio_b,1]';
-d_new = cross(cross(b_new,vp_oextra),cross(c_new,vp_olw));
+d_new = cross(cross(b_new,vv),cross(c_new,vh1));
 d_new = d_new/d_new(3);
 a_new = a1;
 %riporto a dov'era prima

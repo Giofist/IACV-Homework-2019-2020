@@ -21,6 +21,9 @@ function H = compute_H_aff(ls,ms, debug)
 % 2 constraints are enough to determine C_star_inf
 % here we use a least square approximation using all lines provided.
 
+
+% pagg 54 of the book eq 2.21 and 2.22
+
 X = []; % should be nxm matrix (n is ls size 2, m is 2)
 Y = []; % should be n matrix of -l2m2 elements
 for ii = 1:size(ls,2)
@@ -45,7 +48,7 @@ C_star_prime = [W(1,1) W(2,1) 0; W(2,1) 1 0; 0 0 0];
 [U, S, V] = svd(C_star_prime);
 H = (U * diag([sqrt(S(1, 1)), sqrt(S(2, 2)), 1]));
 H = inv(H);
-
+    
 if debug
     disp(S);
     disp(U);
