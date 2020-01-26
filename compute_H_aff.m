@@ -24,10 +24,9 @@ function H = compute_H_aff(ls,ms, debug)
 
 % pagg 54 of the book eq 2.21 and 2.22
 
-X = []; % should be nxm matrix (n is ls size 2, m is 2)
-Y = []; % should be n matrix of -l2m2 elements
+X = []; 
+Y = []; 
 for ii = 1:size(ls,2)
-    % first compute the element of x
     li = ls(:,ii);
     mi = ms(:,ii);
     l1 = li(1,1);
@@ -39,12 +38,8 @@ for ii = 1:size(ls,2)
     Y(ii,1) = -l2*m2;
 end
 
-% closed form resolution of the system of equation.
 W = (X.'*X)\(X.'*Y);
 C_star_prime = [W(1,1) W(2,1) 0; W(2,1) 1 0; 0 0 0];
-
-% build reconstruction matrix
-% H = [K(1,1) K(1,2) 0; K(1,2) K(2,2) 0; 0 0 1]
 [U, S, V] = svd(C_star_prime);
 H = (U * diag([sqrt(S(1, 1)), sqrt(S(2, 2)), 1]));
 H = inv(H);

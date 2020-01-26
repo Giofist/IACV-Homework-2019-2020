@@ -89,6 +89,7 @@ draw_lines(lines, im_rgb);
 [line_ind_vrw, lines_vrw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
 [line_ind_vextra, lines_vextra] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines (then press enter):", auto_selection, LINES_VERTICAL_EXTRA);
 [line_ind_oextra, lines_oextra] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines (then press enter):", auto_selection, LINES_ORIZONTAL_EXTRA);
+
 % plot selected lines
 line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw, line_ind_oextra];
 draw_lines(lines(1,line_ind), im_rgb);
@@ -119,7 +120,7 @@ l_inf_prime = fitLine([vp_olw vp_oextra],true);
 H_r_aff = [1 0 0; 0 1 0; l_inf_prime(1) l_inf_prime(2) l_inf_prime(3)];
 
 % Transform the image
-img_affine = transform_and_show(H_r_aff, im_rgb, "Affine rectification XZ");
+img_affine = transform_and_show(H_r_aff, im_rgb, "Image with recovered affine properties");
 
 
 %% Metric rectification
@@ -131,7 +132,6 @@ perpLines = [createLinePairsFromTwoSets(lines_olw, lines_oextra), createLinePair
 % transform lines according to H_r_aff since we need to start from an affinity
 perpLines = transformLines(H_r_aff, perpLines);
 
-% Ceck if transformed lines are good (TODO)
 
 %% compute H through linear reg starting from affine transformation
 
@@ -148,33 +148,30 @@ end
 H_a_e = compute_H_aff(ls,ms, debug);
 
 %% Transform from affinity
-img_affine_scaled = imresize(img_affine, 0.2);
-tform = projective2d(H_a_e.');
+%Scaling performed for better performance
+Resize = [0.2 0 0; 0 0.2 0; 0 0 1]; 
+
+
+tform = projective2d((Resize*H_a_e).');
 
 % apply the transformation to img
-outputImage = imwarp(img_affine_scaled, tform);
+outputImage = imwarp(img_affine, tform);
 R = rotx(deg2rad(180));
 tform = projective2d(R.');
 outputImage = imwarp(outputImage, tform);
 outputImage = imrotate(imresize(outputImage, [IMG_MAX_SIZE_X, IMG_MAX_SIZE_Y]), -88);
 
-figure();
-imshow(outputImage);
-title('Affine transformation');
-
 %% Complete Transformation
 
-Resize = [0.2 0 0; 0 0.2 0; 0 0 1];
 O = rotz(deg2rad(-88));
 H_r_complete = Resize * R * O * H_a_e * H_r_aff;
- 
+
 tform_complete = projective2d(H_r_complete.');
 outputImage_final = imwarp(im_rgb, tform_complete);
-%outputImage_final = imresize(outputImage_final, [IMG_MAX_SIZE_X, IMG_MAX_SIZE_Y]);
 
 figure();
 imshow(outputImage_final);
-title('Affine transformation');
+title('Affine reconstruction');
 
 %% metric
 H_metric = [1 0 0; 0 164/109 0; 0 0 1];
@@ -194,47 +191,8 @@ H_fin = H_metric * H_r_complete;
 %           w=  |0   w2  w4|
 %               |w3  w4  w5|
 %We need 5 constraint 3 form vanishing points and 2 form H matrix
-
-%calculation of K from IAC using constraints (p226)
-A = [vp_olw(1)*vp_vlw(1), vp_olw(2)*vp_vlw(2),   vp_olw(1)+vp_vlw(1),  vp_olw(2)+vp_vlw(2),  1;
-    vp_olw(1)*vp_oextra(1),   vp_olw(2)*vp_oextra(2),  vp_olw(1)+vp_oextra(1),   vp_olw(2)+vp_oextra(2),   1;
-    vp_oextra(1)*vp_vlw(1),   vp_oextra(2)*vp_vlw(2),  vp_oextra(1)+vp_vlw(1),   vp_oextra(2)+vp_vlw(2),   1;
-    H_fin(1,1)*H_fin(2,1),  H_fin(1,2)*H_fin(2,2),  H_fin(1,3)*H_fin(2,1)+H_fin(1,1)*H_fin(2,3), H_fin(1,3)*H_fin(2,2)+H_fin(1,2)*H_fin(2,3), H_fin(1,3)*H_fin(2,3)];
-aus = null(A);
-IAC = [aus(1), 0, aus(3); 0, aus(2), aus(4); aus(3),aus(4),aus(5)];
-K_g = chol(IAC);
-K_g = inv(K_g);
-K_g = K_g/K_g(3,3);
-
-% %% Estimate calibtation matrix K second attempt not working!!!
-% % We can use skew simmetry but not natural camera assumption!!!
-% % the matrix we're looking for is:
-% 
-% %calculation of K from IAC using constraints (p226)zz
-% A = [vp_olw(1)*vp_vlw(1), vp_olw(2)*vp_vlw(2),   vp_olw(1)+vp_vlw(1),  vp_olw(2)+vp_vlw(2),  1;
-%     vp_olw(1)*vp_oextra(1),   vp_olw(2)*vp_oextra(2),  vp_olw(1)+vp_oextra(1),   vp_olw(2)+vp_oextra(2),   1;
-%     vp_oextra(1)*vp_vlw(1),   vp_oextra(2)*vp_vlw(2),  vp_oextra(1)+vp_vlw(1),   vp_oextra(2)+vp_vlw(2),   1;
-%     H_fin(1,1)*H_fin(2,1), H_fin(1,2)*H_fin(2,2),  H_fin(1,3)*H_fin(2,1)+H_fin(1,1)*H_fin(2,3), H_fin(1,3)*H_fin(2,2)+H_fin(1,2)*H_fin(2,3), H_fin(1,3)*H_fin(2,3);
-%     H_fin(1,1)^2-H_fin(2,1)^2, H_fin(1,2)^2-H_fin(2,2)^2,   2*(H_fin(1,3)*H_fin(1,1)-H_fin(2,3)*H_fin(2,1)),    2*(H_fin(1,3)*H_fin(1,2)-H_fin(2,3)*H_fin(2,2)),   H_fin(1,3)^2-H_fin(2,3)^2];
-% aus = null(A);
-% IAC = [aus(1), 0, aus(3); 0, aus(2), aus(4); aus(3),aus(4),aus(5)];
-% K_g2 = chol(IAC);
-% K_g2 = inv(K_g2);
-% K_g2 = K_g2/K_g2(3,3);
-
-%% Estimate K from normalized vp Second test
-% for double ceck but assuming also natural camera!!!
-A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
-    vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
-    vp_oextra(1)*vp_vlw(1)+vp_oextra(2)*vp_vlw(2),vp_oextra(1)+vp_vlw(1),vp_oextra(2)+vp_vlw(2),1];
-aus = null(A);
-IAC = [aus(1), 0, aus(2); 0, aus(1), aus(3); aus(2),aus(3),aus(4)];
-K_n = chol(IAC);
-K_n = inv(K_n);
-K_n = K_n/K_n(3,3);
-
-%% Online K computation GOOD RESULT
 % Using L_inf, vertical vp and homography
+
 H_scaling = diag([1/IMG_MAX_SIZE_X, 1/IMG_MAX_SIZE_Y, 1]);
 l_infs = H_scaling.' \ l_inf_prime;
 vp_vertical = H_scaling * vp_vlw;
@@ -262,6 +220,17 @@ v0 = K(2,3);
 alfa = fx/fy;
 
 
+%% Estimate K imposing also natural camera
+% For double ceck of order of magnitude not requested
+A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
+    vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
+    vp_oextra(1)*vp_vlw(1)+vp_oextra(2)*vp_vlw(2),vp_oextra(1)+vp_vlw(1),vp_oextra(2)+vp_vlw(2),1];
+aus = null(A);
+IAC = [aus(1), 0, aus(2); 0, aus(1), aus(3); aus(2),aus(3),aus(4)];
+K_n = chol(IAC);
+K_n = inv(K_n);
+K_n = K_n/K_n(3,3);
+
 %% Reconstruction of main facade  
 a = [1186.5, 988.5, 1]';
 b = [2662.5, -15.5, 1]';
@@ -273,177 +242,61 @@ hold on
 PP = K(1:2,3);
 PC = [PP(1),PP(2),1]';
 
-%riporto a su PC
+%write points wrt PC
 b1 = b-a+PC;
 c1 = c-a+PC;
 d1 = d-a+PC;
 a1 = PC;
-%scalo rispetto a fx e fy
+%Scale it wrt focal point
 ratio_c = norm(a1-c1)/K(2,2);
 c_new = [a1(1)+(c1(1)-a1(1))*ratio_c, a1(2)+(c1(2)-a1(2))*ratio_c,1]';
 ratio_b = norm(a1-b1)/K(1,1);
 b_new = [a1(1)+(b1(1)-a1(1))*ratio_b, a1(2)+(b1(2)-a1(2))*ratio_b,1]';
 a_new = a1;
-%riporto a dov'era prima
+%Transalte back to previous position
 a_new = a_new-PC+a;
 b_new = b_new-PC+a;
 c_new = c_new-PC+a;
-d_new = cross(cross(b_new,vv),cross(vp_olw,c_new));
+d_new = cross(cross(b_new,vp_vlw),cross(vp_olw,c_new));
 d_new = d_new/d_new(3);
-%come output uso fx e fy
-out = [0 0;K(1,1),0;0,K(2,2);K(1,1),K(2,2)]*0.01;
 
+%for better result change to 0.1 scaling factor
+H_support = [0 0;K(1,1),0;0,K(2,2);K(1,1),K(2,2)]*0.05;
 
-plot(a(1),a(2),'xg','MarkerSize',12);
-plot(b(1),b(2),'xg','MarkerSize',12);
-plot(c(1),c(2),'xg','MarkerSize',12);
-plot(d(1),d(2),'xg','MarkerSize',12);
-plot(a_new(1),a_new(2),'or','MarkerSize',12);
-plot(b_new(1),b_new(2),'or','MarkerSize',12);
-plot(c_new(1),c_new(2),'or','MarkerSize',12);
-plot(d_new(1),d_new(2),'or','MarkerSize',12);
-myline1=[a_new';b_new'];
-line(myline1(:,1),myline1(:,2),'LineWidth',5);
-myline2=[a_new';c_new'];
-line(myline2(:,1),myline2(:,2),'LineWidth',5);
-myline3=[c_new';d_new'];
-line(myline3(:,1),myline3(:,2),'LineWidth',5);
-myline4=[b_new';d_new'];
-line(myline4(:,1),myline4(:,2),'LineWidth',5);
-plot(PP(1),PP(2),'xg','MarkerSize',20)
-plot(PP(1),PP(2),'or','MarkerSize',20)
+if debug
+    plot(a(1),a(2),'xg','MarkerSize',12);
+    plot(b(1),b(2),'xg','MarkerSize',12);
+    plot(c(1),c(2),'xg','MarkerSize',12);
+    plot(d(1),d(2),'xg','MarkerSize',12);
+    plot(a_new(1),a_new(2),'or','MarkerSize',12);
+    plot(b_new(1),b_new(2),'or','MarkerSize',12);
+    plot(c_new(1),c_new(2),'or','MarkerSize',12);
+    plot(d_new(1),d_new(2),'or','MarkerSize',12);
+    myline1=[a_new';b_new'];
+    line(myline1(:,1),myline1(:,2),'LineWidth',5);
+    myline2=[a_new';c_new'];
+    line(myline2(:,1),myline2(:,2),'LineWidth',5);
+    myline3=[c_new';d_new'];
+    line(myline3(:,1),myline3(:,2),'LineWidth',5);
+    myline4=[b_new';d_new'];
+    line(myline4(:,1),myline4(:,2),'LineWidth',5);
+    plot(PP(1),PP(2),'xg','MarkerSize',20)
+    plot(PP(1),PP(2),'or','MarkerSize',20)
+end 
 
-%se si vuole plottare anche i VP
-% x = [vh1(1),vh2(1),vv(1)];
-% y = [vh1(2),vh2(2),vv(2)];
-% set(gca, 'XLim',[min(x(:))-200  max(x(:))+200])
-% set(gca, 'YLim',[min(y(:))-200  max(y(:))+200])
-% hold on
-% plot(x,y,'xr','MarkerSize',20);
-% hold off
+%% Main facade rectification using K
+H_main = maketform('projective',[a_new(1:2)';b_new(1:2)';c_new(1:2)';d_new(1:2)'],H_support);
+[I_rect xdata ydata] = imtransform(im_rgb,H_main,'XYScale',1);
 
-%%
-T = maketform('projective',[a_new(1:2)';b_new(1:2)';c_new(1:2)';d_new(1:2)'],out);
-[I_rect xdata ydata] = imtransform(im_rgb,T,'XYScale',1);
-I_rect = I_rect(1:90,1:190,:);
-%figure(),imshow(imresize(I_rect, [IMG_MAX_SIZE_X, IMG_MAX_SIZE_Y])), title ('rectified image')
-figure(),imshow(I_rect), title ('rectified image')
-%%
+figure(),imshow(I_rect), title ('Rectified main facade')
 
-% a=intersection(lines(11), lines(140));
-% b=intersection(lines(11), lines(139));
-% c=intersection(lines(139), lines(138));
-% d=intersection(lines(140), lines(138));
-a = [3144, 1125];
-b = [3477, 935];
-c = [3886, 1353];
-d = [3479, 1568];
+%% Camera localization
 
-b1 = b-a+[K(1,3), K(2,3)];
-c1 = c-a+[K(1,3), K(2,3)];
-d1 = d-a+[K(1,3), K(2,3)];
-a1 = [K(1,3), K(2,3)];
-
-%scalo rispetto a fx e fy
-ratio_c = norm(a1-c1)/K(2,2);
-c_new = [a1(1)+(c1(1)-a1(1))*ratio_c, a1(2)+(c1(2)-a1(2))*ratio_c,1]';
-ratio_b = norm(a1-b1)/K(1,1);
-b_new = [a1(1)+(b1(1)-a1(1))*ratio_b, a1(2)+(b1(2)-a1(2))*ratio_b,1]';
-d_new = cross(cross(b_new,vp_oextra),cross(c_new,vp_olw));
-d_new = d_new/d_new(3);
-a_new = a1;
-%riporto a dov'era prima
-a_new = a_new-[K(1,3), K(2,3)]+a;
-b_new = b_new-[K(1,3), K(2,3)]+a;
-c_new = c_new-[K(1,3), K(2,3)]+a;
-d_new = d_new-[K(1,3), K(2,3)]+a;
-%come output uso fx e fy
-out = [0 0;K(1,1),0;0,K(2,2);K(1,1),K(2,2)];
-
-
-%%
-
-% % K_g = [0.01 0 0; 0 0.01 0; 0 0 1] * K_g;
-% % tform_k = projective2d(K_g.');
-% % outputImage_k = imwarp(im_rgb, tform_k);
-% % 
-% % figure();
-% % imshow(outputImage_k);
-% % title('Affine transformation using K');
-% %IAC_from_K = (K*K.')^-1;
-% %IAC_from_K = IAC_from_K/IAC_from_K(3,3);
-% 
-% %% Localization of camera position and orientation
-% 
-% x_dl = [0 0];
-% x_ul = [0 LENGTH_LONGSIDE];
-% % x_dr = [LENGTH_LONGSIDE/aspect_ratio_left 0];
-% % x_ur = [LENGTH_LONGSIDE/aspect_ratio_left LENGTH_LONGSIDE];
-% 
-% % get the same points in the original image
-% % get useful lines
-% l_left = lines_left_face(:,1);
-% l_up = lines_left_face(:,2);
-% l_down = lines_left_face(:,3);
-% l_right = lines_left_face(:,4);
-% 
-% % upper left point and down left point
-% x_ul_left = cross(l_left,l_up);
-% x_dl_left = cross(l_left,l_down);
-% 
-% % upper right point and down right point
-% x_ur_left = cross(l_right,l_up);
-% x_dr_left = cross(l_down,l_right);
-% 
-% % normalization
-% x_ul_left = x_ul_left ./ x_ul_left(3,1); 
-% x_dl_left = x_dl_left ./ x_dl_left(3,1);
-% x_ur_left = x_ur_left./ x_ur_left(3,1);
-% x_dr_left = x_dr_left./ x_dr_left(3,1);
-% 
-% % fit the homography from scene to image 
-% H_omog = fitgeotrans([x_ul; x_dl; x_ur; x_dr], [x_ul_left(1:2).'; x_dl_left(1:2).'; x_ur_left(1:2).'; x_dr_left(1:2).'], 'projective');
-% H_omog = H_omog.T.';
-% 
-% % extract columns
-% h1 = H_omog(:,1);
-% h2 = H_omog(:,2);
-% h3 = H_omog(:,3);
-% 
-% % normalization factor.
-% lambda = 1 / norm(K \ h1);
-% 
-% % r1 = K^-1 * h1 normalized
-% r1 = (K \ h1) * lambda;
-% r2 = (K \ h2) * lambda;
-% r3 = cross(r1,r2);
-% 
-% % rotation of the world with respect to the camera (R cam -> world)
-% % where the world in this case is the left horizontal face
-% R = [r1, r2, r3];
-% 
-% % due to noise in the data R may be not a true rotation matrix.
-% % approximate it through svd, obtaining a orthogonal matrix
-% [U, ~, V] = svd(R);
-% R = U * V';
-% 
-% % Compute translation vector. This vector is the position of the plane wrt
-% % the reference frame of the camera.
-% T = (K \ (lambda * h3));
-% 
-% cameraRotation = R.';
-% % since T is expressed in the camera ref frame we want it in the plane
-% % reference frame, R.' is the rotation of the camera wrt the plane
-% cameraPosition = -R.'*T;
-% 
-% 
-% %% Display orientation and position from left horizontal face
-% 
-% figure
-% plotCamera('Location', cameraPosition, 'Orientation', cameraRotation.', 'Size', 20);
-% hold on
-% pcshow([[x_ul; x_dl; x_ur; x_dr], zeros(size([x_ul; x_dl; x_ur; x_dr],1), 1)], ...
-%     'red','VerticalAxisDir', 'up', 'MarkerSize', 20);
-% xlabel('X')
-% ylabel('Y')
-% zlabel('Z')
+figure
+plotCamera('Location', cameraPosition, 'Orientation', cameraRotation.', 'Size', 20);
+hold on
+pcshow([[x_ul; x_dl; x_ur; x_dr], zeros(size([x_ul; x_dl; x_ur; x_dr],1), 1)], ...
+    'red','VerticalAxisDir', 'up', 'MarkerSize', 20);
+xlabel('X')
+ylabel('Y')
+zlabel('Z')
