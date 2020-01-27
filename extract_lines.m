@@ -65,13 +65,8 @@ if method == "log"
     th
 end
 
-%test appliy harris on Canny
-if debug
-  corners_canny = detectHarrisFeatures(BW2);
-
-  imshow(BW2); hold on;
-  plot(corners_canny.selectStrongest(10000));
-  hold off
+if false
+  imshow(BW2);
 end
 %% Line Detection
 % find lines vertical

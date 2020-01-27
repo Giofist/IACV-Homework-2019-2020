@@ -63,7 +63,7 @@ if debug
     title("Original Image and Enhanced Images using imadjust, histeq, and adapthisteq")
 end
 
-% for a better result I decided to apply the normalization twice
+% for a better result I decided to aPrincipal_Pointly the normalization twice
 im_gray_norm = adapthisteq(im_gray_norm);
 
 if debug
@@ -81,47 +81,47 @@ draw_lines(lines, im_rgb);
 
 corners = detectHarrisFeatures(im_gray_norm);
 
-imshow(im_rgb); hold on;
+figure, imshow(im_rgb); hold on;
 plot(corners.selectStrongest(1000000));
 hold off
 
-%% Stratification approach:
+%% Stratification aPrincipal_Pointroach:
 
 % - compute affine reconstruction
-% l_inf -> l_inf (the line at infinity must be mapped to itself)
+% l_inf -> l_inf (the line at infinity must be maPrincipal_Pointed to itself)
 % H_r_aff = [1  0  0
 %            0  1  0
 %            l1 l2 l3] where the last row is l_inf'
 
 % Extract parallel lines
-[line_ind_olw, lines_olw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on left window (then press enter):",auto_selection, LINES_ORIZONTAL_LEFT);
+[line_ind_left, lines_left] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on left window (then press enter) left vp:",auto_selection, LINES_ORIZONTAL_LEFT);
 [line_ind_vlw, lines_vlw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on left window (then press enter):", auto_selection, LINES_VERTICAL_LEFT);
 [line_ind_orw, lines_orw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on right window (then press enter):", auto_selection, LINES_ORIZONTAL_RIGHT);
-[line_ind_vrw, lines_vrw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter):", auto_selection, LINES_VERTICAL_RIGHT);
+[line_ind_up, lines_up] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on right window (then press enter)up vp:", auto_selection, LINES_VERTICAL_RIGHT);
 [line_ind_vextra, lines_vextra] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines (then press enter):", auto_selection, LINES_VERTICAL_EXTRA);
-[line_ind_oextra, lines_oextra] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines (then press enter):", auto_selection, LINES_ORIZONTAL_EXTRA);
+[line_ind_right, lines_right] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines (then press enter)right vp:", auto_selection, LINES_ORIZONTAL_EXTRA);
 
 % plot selected lines
-line_ind = [line_ind_olw, line_ind_vlw, line_ind_orw, line_ind_vrw, line_ind_oextra];
+line_ind = [line_ind_left, line_ind_vlw, line_ind_orw, line_ind_up, line_ind_right];
 draw_lines(lines(1,line_ind), im_rgb);
 
 %% extract the line at infinite
 
-vp_olw = getVp(lines_olw);
+vp_left = getVp(lines_left);
 vp_vlw = getVp(lines_vlw);
 vp_orw = getVp(lines_orw);
-vp_vrw = getVp(lines_vrw);
+vp_up = getVp(lines_up);
 vp_vextra = getVp(lines_vextra);
-vp_oextra = getVp(lines_oextra);
+vp_right = getVp(lines_right);
 
 %vector of vanishing points
-vp = [vp_olw vp_vrw, vp_oextra];
+vp = [vp_left vp_up, vp_right];
 
 %visualize vanishing lines and points
 draw_lines_infinity(lines(1,line_ind), im_rgb, vp);
     
 % fit the line through these points
-l_inf_prime = fitLine([vp_olw vp_oextra],true);
+l_inf_prime = fitLine([vp_left vp_right],true);
 
 %% compute H_r_aff
 
@@ -135,7 +135,7 @@ img_affine = transform_and_show(H_r_aff, im_rgb, "Image with recovered affine pr
 % In order to perform metric rectification from an affine transformation we
 % need perpendicular lines for constraints of the C_star_inf'
 
-perpLines = [ortogonalLineSets(lines_olw, lines_oextra), ortogonalLineSets(lines_olw, lines_vextra)];
+perpLines = [ortogonalLineSets(lines_left, lines_right), ortogonalLineSets(lines_left, lines_vextra)];
 
 % transform lines according to H_r_aff since we need to start from an affinity
 perpLines = transformLines(H_r_aff, perpLines);
@@ -160,7 +160,7 @@ H_a_e = compute_H_aff(ls,ms, debug);
 Resize = [0.2 0 0; 0 0.2 0; 0 0 1]; 
 tform = projective2d((Resize*H_a_e).');
 
-% apply the transformation to img
+% aPrincipal_Pointly the transformation to img
 outputImage = imwarp(img_affine, tform);
 R = rotx(deg2rad(180));
 tform = projective2d(R.');
@@ -181,7 +181,7 @@ title('Euclidan reconstruction');
 
 %% Metric prperty recovery
 
-H_metric = [1 0 0; 0 164/109 0; 0 0 1];
+H_metric = [1 0 0; 0 200/109 0; 0 0 1];
 tform_metric = projective2d(H_metric.');
 outputImage_metric = imwarp(outputImage_final, tform_metric);
 
@@ -229,9 +229,9 @@ alfa = fx/fy;
 %% Estimate K imposing also natural camera
 % For double ceck of order of magnitude not requested
 
-A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
-    vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
-    vp_oextra(1)*vp_vlw(1)+vp_oextra(2)*vp_vlw(2),vp_oextra(1)+vp_vlw(1),vp_oextra(2)+vp_vlw(2),1];
+A = [vp_left(1)*vp_vlw(1)+vp_left(2)*vp_vlw(2),vp_left(1)+vp_vlw(1),vp_left(2)+vp_vlw(2),1;
+    vp_left(1)*vp_right(1)+vp_left(2)*vp_right(2),vp_left(1)+vp_right(1),vp_left(2)+vp_right(2),1;
+    vp_right(1)*vp_vlw(1)+vp_right(2)*vp_vlw(2),vp_right(1)+vp_vlw(1),vp_right(2)+vp_vlw(2),1];
 aus = null(A);
 IAC = [aus(1), 0, aus(2); 0, aus(1), aus(3); aus(2),aus(3),aus(4)];
 K_n = chol(IAC);
@@ -245,14 +245,14 @@ b = [2662.5, -15.5, 1]';
 c = [1006.5, 2884.5, 1]';
 d = [4033.5, 1300.5, 1]';
 
-PP = K(1:2,3);
-PC = [PP(1),PP(2),1]';
+Principal_Point = K(1:2,3);
+Centeral_Point = [Principal_Point(1),Principal_Point(2),1]';
 
-%write points wrt PC
-b1 = b-a+PC;
-c1 = c-a+PC;
-d1 = d-a+PC;
-a1 = PC;
+%write points wrt Centeral_Point
+b1 = b-a+Centeral_Point;
+c1 = c-a+Centeral_Point;
+d1 = d-a+Centeral_Point;
+a1 = Centeral_Point;
 %Scale it wrt focal point
 ratio_c = norm(a1-c1)/K(2,2);
 c_new = [a1(1)+(c1(1)-a1(1))*ratio_c, a1(2)+(c1(2)-a1(2))*ratio_c,1]';
@@ -260,14 +260,14 @@ ratio_b = norm(a1-b1)/K(1,1);
 b_new = [a1(1)+(b1(1)-a1(1))*ratio_b, a1(2)+(b1(2)-a1(2))*ratio_b,1]';
 a_new = a1;
 %Transalte back to previous position
-a_new = a_new-PC+a;
-b_new = b_new-PC+a;
-c_new = c_new-PC+a;
-d_new = cross(cross(b_new,vp_vlw),cross(vp_olw,c_new));
+a_new = a_new-Centeral_Point+a;
+b_new = b_new-Centeral_Point+a;
+c_new = c_new-Centeral_Point+a;
+d_new = cross(cross(b_new,vp_vlw),cross(vp_left,c_new));
 d_new = d_new/d_new(3);
 
 %for better result change to 0.1 scaling factor
-H_support = [0 0;K(1,1),0;0,K(2,2);K(1,1),K(2,2)]*0.05;
+H_suPrincipal_Pointort = [0 0;K(1,1),0;0,K(2,2);K(1,1),K(2,2)]*0.05;
 
 if debug
     figure(),imshow(im_rgb)
@@ -288,24 +288,28 @@ if debug
     line(myline3(:,1),myline3(:,2),'LineWidth',5);
     myline4=[b_new';d_new'];
     line(myline4(:,1),myline4(:,2),'LineWidth',5);
-    plot(PP(1),PP(2),'xg','MarkerSize',20)
-    plot(PP(1),PP(2),'or','MarkerSize',20)
+    plot(Principal_Point(1),Principal_Point(2),'xg','MarkerSize',20)
+    plot(Principal_Point(1),Principal_Point(2),'or','MarkerSize',20)
 end 
 
 %% Main facade rectification using K
 
-H_main = maketform('projective',[a_new(1:2)';b_new(1:2)';c_new(1:2)';d_new(1:2)'],H_support);
+H_main = maketform('projective',[a_new(1:2)';b_new(1:2)';c_new(1:2)';d_new(1:2)'],H_suPrincipal_Pointort);
 [I_rect xdata ydata] = imtransform(im_rgb,H_main,'XYScale',1);
 
 figure(),imshow(I_rect), title ('Rectified main facade')
 
 %% Camera Pose Estimation
 
-% figure
-% plotCamera('Location', cameraPosition, 'Orientation', cameraRotation.', 'Size', 20);
-% hold on
-% pcshow([[x_ul; x_dl; x_ur; x_dr], zeros(size([x_ul; x_dl; x_ur; x_dr],1), 1)], ...
-%     'red','VerticalAxisDir', 'up', 'MarkerSize', 20);
-% xlabel('X')
-% ylabel('Y')
-% zlabel('Z')
+% [worldOrientation,worldLocation] = estimateWorldCameraPose(data.imagePoints,data.worldPoints, data.cameraParams);
+% 
+% %show result
+% pcshow(data.worldPoints,'VerticalAxis','Y','VerticalAxisDir','down', ...
+%      'MarkerSize',30);
+%  hold on
+%  plotCamera('Size',10,'Orientation',worldOrientation,'Location',...
+%      worldLocation);
+%  hold off
+%  
+ 
+ 
