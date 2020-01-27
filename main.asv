@@ -11,6 +11,7 @@ global WINDOW_SIZE LINES_ORIZONTAL_LEFT LINES_VERTICAL_LEFT LINES_ORIZONTAL_RIGH
         IMG_MAX_SIZE_X IMG_MAX_SIZE_Y IMG_MAX_SIZE
        
 % constants for line selection
+
 LINES_ORIZONTAL_LEFT = 1;
 LINES_VERTICAL_LEFT = 2;
 LINES_ORIZONTAL_RIGHT = 3;
@@ -38,14 +39,12 @@ im_rgb = imread(image_input);
 IMG_MAX_SIZE = max(size(im_rgb));
 [x, y] =size(im_rgb);
 IMG_MAX_SIZE_X = x;
-IMG_MAX_SIZE_Y = y/3; %for RGB
+IMG_MAX_SIZE_Y = y/3; %fro RGB
 
 if debug
     figure(1), imshow(im_rgb); title('Original Image');
 end
-
 %% Image GrayScale Conversion
-
 im_gray = rgb2gray(im_rgb);
 
 if debug
@@ -53,7 +52,6 @@ if debug
 end
 
 %% Image shadow and light normalization
-
 im_gray_norm = adapthisteq(im_gray);
 
 if debug
@@ -71,14 +69,12 @@ if debug
 end
 
 %% Line extraction
-
 lines = extract_lines(im_gray_norm, debug, "canny", ceck_with_second_image);
 
 % plot lines on the image
 draw_lines(lines, im_rgb);
 
 %% Corner detection
-
 corners = detectHarrisFeatures(im_gray_norm);
 
 imshow(im_rgb); hold on;
@@ -86,7 +82,6 @@ plot(corners.selectStrongest(1000000));
 hold off
 
 %% Stratification approach:
-
 % - compute affine reconstruction
 % l_inf -> l_inf (the line at infinity must be mapped to itself)
 % H_r_aff = [1  0  0
@@ -94,6 +89,7 @@ hold off
 %            l1 l2 l3] where the last row is l_inf'
 
 % Extract parallel lines
+
 [line_ind_olw, lines_olw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on left window (then press enter):",auto_selection, LINES_ORIZONTAL_LEFT);
 [line_ind_vlw, lines_vlw] = pick_lines(lines,im_rgb,"Select two or more vertical parallel lines on left window (then press enter):", auto_selection, LINES_VERTICAL_LEFT);
 [line_ind_orw, lines_orw] = pick_lines(lines,im_rgb,"Select two or more orizontal parallel lines on right window (then press enter):", auto_selection, LINES_ORIZONTAL_RIGHT);
@@ -107,6 +103,7 @@ draw_lines(lines(1,line_ind), im_rgb);
 
 %% extract the line at infinite
 
+% get vanishing points
 vp_olw = getVp(lines_olw);
 vp_vlw = getVp(lines_vlw);
 vp_orw = getVp(lines_orw);
@@ -114,13 +111,15 @@ vp_vrw = getVp(lines_vrw);
 vp_vextra = getVp(lines_vextra);
 vp_oextra = getVp(lines_oextra);
 
-%vector of vanishing points
+%vp = [vp_olw vp_vlw vp_orw vp_vrw vp_vextra vp_oextra];
 vp = [vp_olw vp_vrw, vp_oextra];
 
 %visualize vanishing lines and points
 draw_lines_infinity(lines(1,line_ind), im_rgb, vp);
     
+    
 % fit the line through these points
+%l_inf_prime = fitLine([vp_olw vp_vlw vp_orw vp_vrw],false);
 l_inf_prime = fitLine([vp_olw vp_oextra],true);
 
 %% compute H_r_aff
@@ -135,7 +134,7 @@ img_affine = transform_and_show(H_r_aff, im_rgb, "Image with recovered affine pr
 % In order to perform metric rectification from an affine transformation we
 % need perpendicular lines for constraints of the C_star_inf'
 
-perpLines = [ortogonalLineSets(lines_olw, lines_oextra), ortogonalLineSets(lines_olw, lines_vextra)];
+perpLines = [createLinePairsFromTwoSets(lines_olw, lines_oextra), createLinePairsFromTwoSets(lines_olw, lines_vextra)];
 
 % transform lines according to H_r_aff since we need to start from an affinity
 perpLines = transformLines(H_r_aff, perpLines);
@@ -158,6 +157,8 @@ H_a_e = compute_H_aff(ls,ms, debug);
 %% Transform from affinity
 %Scaling performed for better performance
 Resize = [0.2 0 0; 0 0.2 0; 0 0 1]; 
+
+
 tform = projective2d((Resize*H_a_e).');
 
 % apply the transformation to img
@@ -179,8 +180,7 @@ figure();
 imshow(outputImage_final);
 title('Euclidan reconstruction');
 
-%% Metric prperty recovery
-
+%% metric
 H_metric = [1 0 0; 0 164/109 0; 0 0 1];
 tform_metric = projective2d(H_metric.');
 outputImage_metric = imwarp(outputImage_final, tform_metric);
@@ -226,9 +226,13 @@ u0 = K(1,3);
 v0 = K(2,3);
 alfa = fx/fy;
 
+%% test
+K_test = chol(IAC);
+K_test = inv(K_test);
+K_test = K_test/K_test(3,3);
+
 %% Estimate K imposing also natural camera
 % For double ceck of order of magnitude not requested
-
 A = [vp_olw(1)*vp_vlw(1)+vp_olw(2)*vp_vlw(2),vp_olw(1)+vp_vlw(1),vp_olw(2)+vp_vlw(2),1;
     vp_olw(1)*vp_oextra(1)+vp_olw(2)*vp_oextra(2),vp_olw(1)+vp_oextra(1),vp_olw(2)+vp_oextra(2),1;
     vp_oextra(1)*vp_vlw(1)+vp_oextra(2)*vp_vlw(2),vp_oextra(1)+vp_vlw(1),vp_oextra(2)+vp_vlw(2),1];
@@ -239,7 +243,6 @@ K_n = inv(K_n);
 K_n = K_n/K_n(3,3);
 
 %% Reconstruction of main facade  
-
 a = [1186.5, 988.5, 1]';
 b = [2662.5, -15.5, 1]';
 c = [1006.5, 2884.5, 1]';
@@ -293,7 +296,6 @@ if debug
 end 
 
 %% Main facade rectification using K
-
 H_main = maketform('projective',[a_new(1:2)';b_new(1:2)';c_new(1:2)';d_new(1:2)'],H_support);
 [I_rect xdata ydata] = imtransform(im_rgb,H_main,'XYScale',1);
 

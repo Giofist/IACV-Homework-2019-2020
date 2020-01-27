@@ -15,7 +15,7 @@ figure, imshow(img),title('Vanishing Lines and points'), hold on
        x2 = xy(2,1);
        y2 = xy(2,2);
        slope = (y2-y1)/(x2-x1);
-       xLeft = 1; % x is on the left edge
+       xLeft = -10000; % x is on the left edge
        yLeft = slope * (xLeft - x1) + y1;
        xRight = columns; % x is on the reight edge.
        yRight = slope * (xRight - x1) + y1;

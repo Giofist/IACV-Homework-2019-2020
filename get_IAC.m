@@ -91,9 +91,10 @@ end
 % fit a linear model without intercept
 lm = fitlm(X,Y, 'y ~ x1 + x2 + x3 + x4 - 1');
 % get the coefficients
-W = lm.Coefficients.Estimate;
+W = lm.Coefficients.Estimate
 
-%W = X.'*X \ (X.'*Y)
+%exact solution
+%W_e = X.'*X \ (X.'*Y)
 % image of absolute conic
 IAC = double([W(1,1) 0 W(2,1); 0 1 W(3,1); W(2,1) W(3,1) W(4,1)]);
 
